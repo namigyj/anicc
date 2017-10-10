@@ -1,3 +1,16 @@
+/*
+ *	Anon's Image Comparison Challenge
+ *	(or dotter ?)
+ *
+ * 	> get image
+ *	> get colors from image
+ *	> put random circle of random color on blank image1
+ *  > compare with source_image
+ *  > compare image 2 with source_image
+ *  > keep closest image
+ *	> re-iterate
+ */
+
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #pragma once
@@ -10,7 +23,6 @@ Vector<Vec3b> get_colors(Mat src) {
 	int max_x = src.cols;
 	int max_y = src.rows;
 
-	int color_count = 0;
 	bool found;
 
 	// iterate through image
@@ -21,13 +33,14 @@ Vector<Vec3b> get_colors(Mat src) {
 			Vec3b color = src.at<Vec3b>(Point(x, y));
 
 			for each (Vec3b c in clr_plt) {
-				// if similar color's already in the clr_plt we quit the loop
+				// if similar color is already in the 
+				// color_palette we quit the loop
 				if (norm(c, color) < 25) {
 					found = true;
 					break;
 				}
 			}
-			if (found == false) {
+			if (found == false) { // if no color in clr_plt
 				//cout << "\n" << color_count++ << ": new color " << color << "@" << x << "x" << y << endl;
 				cout << "\r" << clr_plt.size();
 				clr_plt.push_back(color);
@@ -39,10 +52,10 @@ Vector<Vec3b> get_colors(Mat src) {
 	return clr_plt;
 }
 
-Vec3b avg_square(Mat src, int x, int y, int rad) {
-	int s = rad * 2; // size of side
-	x = x - rad;
-	y = y - rad;
+Vec3b avg_square(Mat src, int px, int py, int r) {
+	int s = r * 2; // size of side
+	int x = px - r;
+	int y = py - r;
 	int div = 0; // divider of average
 	Vec3d dresult(0, 0, 0);
 	for (y; y < y + s; y++) {
@@ -51,18 +64,27 @@ Vec3b avg_square(Mat src, int x, int y, int rad) {
 			div++;
 		}
 	}
-	dresult[0] = dresult[0] / div;
-	dresult[1] = dresult[1] / div;
-	dresult[2] = dresult[2] / div;
-	
-	return (Vec3b)dresult;
+
+	return (Vec3b)(dresult/div);
 }
 
+
+// TODO
+// Is there a cleaner way to do this, if circle is too big
+// it averages white and black to grey,
+// which doesn't give a good end result in places like eyes
 Vec3b avg_circle(Mat src, int px, int py, int r) {
 	// P = {(x,y) : (x-px)² + (y-py)² <= r²}
 	
 	int div = 0; // divider of average
 	Vec3d dresult(0, 0, 0);
+	
+	// start positions
+	// TODO
+	// it's useless to start in a corner of a square around a circle
+	// as the first r iterations on x (or y) won't match 
+	// maybe start on (px, py-r) ?? next r iterations are as useless
+	// only a gain of 2 iterations on 3px circles -_- so is it worth ?
 	int y = py-r;
 	int x = px-r;
 	for (y; y < py + r; y++) {
@@ -103,17 +125,25 @@ int main() {
 	for (int i=0; i < 1000000; i++) {
 		int x = rand() % img.cols;
 		int y = rand() % img.rows;
-		int rad = 2;
-		// void circle(Mat& img, Point center, int radius, const Scalar& color, int thickness = 1, int lineType = 8, int shift = 0)
+		int rad = 2; // circle radius
+
+		// get a random color from palette
 		Vec3b color = color_pal[rand()%color_pal.size()];
+		// get average color within circle on source image
 		Vec3b src_avg = avg_circle(src, x, y, rad);
+		// get average color withing circle on generate image 
+		// TODO 
+		// this is bloated, since I only draw circles
+		// the color in the center will be the same as the others
 		Vec3b img_avg = avg_circle(img, x, y, rad);
 		//cout << src_avg << " - " << color << "vs" << img_avg << endl;
 		
+		// compare values, only draw the closest to original image
 		if (norm(color, src_avg) < norm(img_avg, src_avg))
 			circle(img, Point(x, y), rad, (Scalar)color, CV_FILLED);
 		
 		
+		// show image and iteration number every 500 iteration
 		if (i % 500 == 0) {
 			cout << i << endl;
 			imshow("Image", img);
@@ -124,24 +154,5 @@ int main() {
 	//imshow("Image", src);
 	imshow("Image", img);
 	char eKey = waitKey(0);
-	//clr_plt.~Vector();
 	
 }
-
-/* color examples :
-		(110, 73, 62)
-		(80, 51, 44)
-		(168, 112, 97)
-		(55, 44, 42)
-		(229, 228, 255)
-		(161, 145, 153)
-		(33, 61, 121)
-		(154, 150, 209)
-		(34, 21, 19)
-		(124, 121, 168)
-		(107, 79, 82)
-		(176, 116, 110)
-		(153, 94, 90)
-		(70, 35, 39)
-		(55, 19, 32)
-*/
