@@ -13,13 +13,22 @@
 
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
+#include <chrono>
+#include <iomanip>
 #pragma once
+
+#define COLOR_PRECISION 25
 
 using namespace cv;
 using namespace std;
 
+
+// TODO
+// maybe I should make a list based on the number of occurences in the image
+// which would lead to printing more often the most used colors
 Vector<Vec3b> get_colors(Mat src) {
 	Vector<Vec3b> clr_plt = Vector<Vec3b>(); // color_palette
+	Vector<int> clr_occ = Vector<int>(); // color occurences
 	int max_x = src.cols;
 	int max_y = src.rows;
 
@@ -32,18 +41,26 @@ Vector<Vec3b> get_colors(Mat src) {
 			// get the color @ (x,y)
 			Vec3b color = src.at<Vec3b>(Point(x, y));
 
+			int i = 0;
 			for each (Vec3b c in clr_plt) {
 				// if similar color is already in the 
 				// color_palette we quit the loop
-				if (norm(c, color) < 25) {
+				if (norm(c, color) < COLOR_PRECISION) {
 					found = true;
+					//if ((clr_occ[i] % 100) == 0)
+						//clr_plt.push_back(c);
+					clr_occ[i]++;
 					break;
 				}
+				i++;
 			}
 			if (found == false) { // if no color in clr_plt
 				//cout << "\n" << color_count++ << ": new color " << color << "@" << x << "x" << y << endl;
 				cout << "\r" << clr_plt.size();
 				clr_plt.push_back(color);
+				clr_occ.push_back(1);
+				if (clr_plt.size() != clr_occ.size())
+					cout << "problem" << endl;
 				
 			}
 
@@ -72,18 +89,20 @@ Vec3b avg_square(Mat src, int px, int py, int r) {
 // TODO
 // Is there a cleaner way to do this, if circle is too big
 // it averages white and black to grey,
-// which doesn't give a good end result in places like eyes
+// which doesn't give a good end result for some images
 Vec3b avg_circle(Mat src, int px, int py, int r) {
 	// P = {(x,y) : (x-px)² + (y-py)² <= r²}
 	
 	int div = 0; // divider of average
 	Vec3d dresult(0, 0, 0);
 	
+	// trying with slightly smaller radius
+
 	// start positions
 	// TODO
 	// it's useless to start in a corner of a square around a circle
 	// as the first r iterations on x (or y) won't match 
-	// maybe start on (px, py-r) ?? next r iterations are as useless
+	// maybe start on (px, py-r) ?? next r iterations are as useless though
 	// only a gain of 2 iterations on 3px circles -_- so is it worth ?
 	int y = py-r;
 	int x = px-r;
@@ -106,7 +125,7 @@ Vec3b avg_circle(Mat src, int px, int py, int r) {
 }
 
 int main() {
-	Mat src = imread("C:/Users/Touko/code/paysage1.jpg");
+	Mat src = imread("C:/Users/Touko/code/k.jpg");
 	if (src.empty()) {
 		cout << "Cannot load img !" << endl;
 		return -1;
@@ -120,12 +139,13 @@ int main() {
 	Vector<Vec3b> color_pal = get_colors(src);
 	cout << " colors" << endl;
 
+	chrono::system_clock::time_point time_start = chrono::system_clock::now();
 
 	cout << "generating" << endl;
-	for (int i=0; i < 1000000; i++) {
+	for (int i=0; i < 100000000; i++) {
 		int x = rand() % img.cols;
 		int y = rand() % img.rows;
-		int rad = 2; // circle radius
+		int rad = 3; // circle radius
 
 		// get a random color from palette
 		Vec3b color = color_pal[rand()%color_pal.size()];
@@ -134,9 +154,10 @@ int main() {
 		// get average color withing circle on generate image 
 		// TODO 
 		// this is bloated, since I only draw circles
-		// the color in the center will be the same as the others
-		Vec3b img_avg = avg_circle(img, x, y, rad);
-		//cout << src_avg << " - " << color << "vs" << img_avg << endl;
+		// the color in the center will be the same as the rest of circle
+		//Vec3b img_avg = avg_circle(img, x, y, rad);
+		Vec3b img_avg = img.at<Vec3b>(Point(x, y));
+		
 		
 		// compare values, only draw the closest to original image
 		if (norm(color, src_avg) < norm(img_avg, src_avg))
@@ -145,9 +166,13 @@ int main() {
 		
 		// show image and iteration number every 500 iteration
 		if (i % 500 == 0) {
-			cout << i << endl;
+			chrono::duration<double> time_now = chrono::system_clock::now() - time_start;
+			cout << "\r" << i << " in " << (int)time_now.count()/60 << ":" << (int)time_now.count() % 60;
 			imshow("Image", img);
 			char eKey = waitKey(1) & 0xFF;
+		}
+		if (i % 10000 == 0) {
+
 		}
 		
 	}
