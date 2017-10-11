@@ -28,15 +28,17 @@ using namespace std;
 // which would lead to printing more often the most used colors
 Vector<Vec3b> get_colors(Mat src) {
 	Vector<Vec3b> clr_plt = Vector<Vec3b>(); // color_palette
+	Vector<Vec3b> clr_dplt = Vector<Vec3b>();		 // repeated colors
 	Vector<int> clr_occ = Vector<int>(); // color occurences
+
 	int max_x = src.cols;
 	int max_y = src.rows;
 
 	bool found;
 
 	// iterate through image
-	for (int y = 100; y < max_y; y++) {
-		for (int x = 100; x < max_x; x++) {
+	for (int y = 0; y < max_y; y++) {
+		for (int x = 0; x < max_x; x++) {
 			found = false;
 			// get the color @ (x,y)
 			Vec3b color = src.at<Vec3b>(Point(x, y));
@@ -47,8 +49,12 @@ Vector<Vec3b> get_colors(Mat src) {
 				// color_palette we quit the loop
 				if (norm(c, color) < COLOR_PRECISION) {
 					found = true;
-					//if ((clr_occ[i] % 100) == 0)
-						//clr_plt.push_back(c);
+
+					// un-randomize color picking
+					if ((clr_occ[i] % 500) == 0) {
+						clr_dplt.push_back(color);
+					}
+						
 					clr_occ[i]++;
 					break;
 				}
@@ -58,6 +64,7 @@ Vector<Vec3b> get_colors(Mat src) {
 				//cout << "\n" << color_count++ << ": new color " << color << "@" << x << "x" << y << endl;
 				cout << "\r" << clr_plt.size();
 				clr_plt.push_back(color);
+				// un-randomize color picking
 				clr_occ.push_back(1);
 				if (clr_plt.size() != clr_occ.size())
 					cout << "problem" << endl;
@@ -66,6 +73,11 @@ Vector<Vec3b> get_colors(Mat src) {
 
 		}
 	}
+	// un-randomize color picking
+	for each (Vec3b c in clr_dplt) {
+		clr_plt.push_back(c);
+	}
+
 	return clr_plt;
 }
 
@@ -142,7 +154,7 @@ int main() {
 	chrono::system_clock::time_point time_start = chrono::system_clock::now();
 
 	cout << "generating" << endl;
-	int rad = 20; // circle radius
+	int rad = 15; // circle radius
 	for (int i=0; i < 100000000; i++) {
 		int x = rand() % img.cols;
 		int y = rand() % img.rows;
@@ -171,13 +183,9 @@ int main() {
 			imshow("Image", img);
 			char eKey = waitKey(1) & 0xFF;
 			if (i == 50000)
-				rad = 4;
+				rad = 5;
 			else if (i == 150000)
 				rad = 3;
-			else if (i == 300000)
-				rad = 2;
-			else if (i == 1000000)
-				rad = 1;
 		} 
 		
 	}
