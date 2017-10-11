@@ -142,10 +142,10 @@ int main() {
 	chrono::system_clock::time_point time_start = chrono::system_clock::now();
 
 	cout << "generating" << endl;
+	int rad = 20; // circle radius
 	for (int i=0; i < 100000000; i++) {
 		int x = rand() % img.cols;
 		int y = rand() % img.rows;
-		int rad = 3; // circle radius
 
 		// get a random color from palette
 		Vec3b color = color_pal[rand()%color_pal.size()];
@@ -170,10 +170,15 @@ int main() {
 			cout << "\r" << i << " in " << (int)time_now.count()/60 << ":" << (int)time_now.count() % 60;
 			imshow("Image", img);
 			char eKey = waitKey(1) & 0xFF;
-		}
-		if (i % 10000 == 0) {
-
-		}
+			if (i == 50000)
+				rad = 4;
+			else if (i == 150000)
+				rad = 3;
+			else if (i == 300000)
+				rad = 2;
+			else if (i == 1000000)
+				rad = 1;
+		} 
 		
 	}
 	//imshow("Image", src);
